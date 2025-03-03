@@ -31,6 +31,22 @@ spring:
         show_sql: true
     open-in-view: false
 
+  redis:
+    host: redis-12592.c340.ap-northeast-2-1.ec2.redns.redis-cloud.com
+    port: 12592
+#    password: ${REDIS_PASSWORD}  # If authentication is required
+    timeout: 60000  # (Optional) Increase timeout to 60 seconds if needed
+    lettuce:
+      pool:
+        max-active: 10  # Limit max active connections
+        max-idle: 5
+        min-idle: 1
+#    host: localhost
+#    port: 6379
+#    host: ${REDIS_HOST}  # Use environment variables for flexibility
+#    port: ${REDIS_PORT}
+#    password: ${REDIS_PASSWORD}
+
 jwt:
   secret-key-source: ${JWT_SECRET_KEY}
 cloud:

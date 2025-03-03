@@ -72,7 +72,7 @@ public class MapController {
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        Integer userId = Integer.valueOf(user.getUserId());
+        Integer userId = user.getUserId();
         boolean isFavorite = mapService.toggleFavoritePlace(userId, mapId);
 
         return ResponseEntity.ok(isFavorite);
@@ -82,12 +82,21 @@ public class MapController {
     @GetMapping("/{placeName}/likes")
     public ResponseEntity<Integer> getPlaceLikes(@PathVariable String placeName) {
         Integer likeMarkCount = mapService.getLikesByPlaceName(placeName);
-
         return ResponseEntity.ok(likeMarkCount);
     }
 
+    // 찜 카운트 증가 API
+    @PostMapping("/{placeName}/likes/increment")
+    public ResponseEntity<Integer> incrementLikes(@PathVariable String placeName) {
+        Integer likeMarkCount = mapService.incrementLikes(placeName);
+        return ResponseEntity.ok(likeMarkCount);
+    }
 
-
-
+    //  찜 카운트 감소 API
+    @PostMapping("/{placeName}/likes/decrement")
+    public ResponseEntity<Integer> decrementLikes(@PathVariable String placeName) {
+        Integer likeMarkCount = mapService.decrementLikes(placeName);
+        return ResponseEntity.ok(likeMarkCount);
+    }
 
 }

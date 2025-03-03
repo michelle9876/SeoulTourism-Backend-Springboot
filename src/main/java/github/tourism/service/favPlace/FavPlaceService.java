@@ -9,6 +9,7 @@ import github.tourism.data.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,11 +19,21 @@ public class FavPlaceService {
     private final FavPlaceRepository favPlaceRepository;
     private final MapRepository mapRepository;
     private final UserRepository userRepository;
+    // redis
+    private final RedisTemplate<String, String> redisTemplate;
+
+    // redis
+    private String getRedisKey(Integer mapId) {
+        return "place:" + mapId;
+    }
+
+
 
 //    1.	찜한 장소 저장: 사용자가 특정 장소를 찜하면 FavPlace 테이블에 저장.
 //	  2.	찜 카운트 증가: 찜할 때마다 Map 테이블에서 해당 장소의 찜 카운트를 증가.
 //	  3.	중복 찜 방지: 사용자가 이미 찜한 경우 중복으로 추가되지 않도록 처리.
 //    4.	찜 해제 기능: 사용자가 찜을 해제하면 카운트를 감소시키고, FavPlace 테이블에서 삭제.
+
 
 
     // 유저의 찜한 장소 가져오기
@@ -61,6 +72,11 @@ public class FavPlaceService {
 
         favPlaceRepository.save(favPlace);
 
+        // Redis에서 찜 개수 증가
+        String key = getRedisKey(mapId);
+        redisTemplate.opsForValue().increment(key);
+
+
         // 장소를 다른 사용자가 찜했으므로 likemarkCount 증가
         mapRepository.incrementLikemarkCount(mapId);
     }
@@ -78,6 +94,10 @@ public class FavPlaceService {
         // FavPlace 삭제
         favPlaceRepository.deleteById(favPlaceId);
 
+        // Redis에서 찜 개수 감소
+        String key = getRedisKey(mapId);
+        redisTemplate.opsForValue().decrement(key);
+
         // Map의 likemarkCount 감소
         mapRepository.decrementLikemarkCount(mapId);
 
@@ -92,10 +112,21 @@ public class FavPlaceService {
         // FavPlace 삭제
         favPlaceRepository.delete(favPlace);
 
+        // Redis에서 찜 개수 감소
+        String key = getRedisKey(mapId);
+        redisTemplate.opsForValue().decrement(key);
+
+
         // Map의 likemarkCount 감소
         mapRepository.decrementLikemarkCount(mapId);
     }
 
+    // Redis에서 찜 개수 조회
+    public Integer getLikes(Integer mapId) {
+        String key = getRedisKey(mapId);
+        String likes = redisTemplate.opsForValue().get(key);
+        return likes != null ? Integer.parseInt(likes) : 0;
+    }
 
 
 }

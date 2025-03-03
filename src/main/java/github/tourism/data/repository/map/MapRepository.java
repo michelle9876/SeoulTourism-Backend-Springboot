@@ -38,4 +38,7 @@ public interface MapRepository extends JpaRepository<Map, Integer> {
     // placeName으로 likeMarkCount 조회
     @Query("SELECT m FROM Map m WHERE m.place_name = :placeName")
     Optional <Map> findMapByPlaceName(@Param("placeName") String placeName);
+
+    @Query("SELECT m.likemarkCount FROM Map m WHERE m.place_name = :placeName")
+    Optional<Integer> findLikesByPlaceName(@Param("placeName") String placeName);
 }

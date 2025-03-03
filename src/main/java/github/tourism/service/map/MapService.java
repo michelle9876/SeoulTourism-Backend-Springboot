@@ -6,6 +6,7 @@ import github.tourism.data.entity.user.User;
 import github.tourism.data.repository.favPlace.FavPlaceRepository;
 import github.tourism.data.repository.map.MapRepository;
 import github.tourism.data.repository.user.UserRepository;
+import github.tourism.service.redis.RedisLikeService;
 import github.tourism.web.advice.ErrorCode;
 import github.tourism.web.dto.map.MapDetailsDTO;
 import github.tourism.web.dto.map.MapsDTO;
@@ -16,17 +17,32 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import software.amazon.awssdk.services.s3.endpoints.internal.Value;
 
 import java.util.Optional;
 
 @Service
 @Transactional(readOnly = true)
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 public class MapService {
 
     private final MapRepository mapRepository;
     private final FavPlaceRepository favPlaceRepository;
     private final UserRepository userRepository;
+//    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisLikeService redisLikeService;
+
+    public MapService(MapRepository mapRepository, FavPlaceRepository favPlaceRepository, UserRepository userRepository, RedisLikeService redisLikeService) {
+        this.mapRepository = mapRepository;
+        this.favPlaceRepository = favPlaceRepository;
+        this.userRepository = userRepository;
+        this.redisLikeService = redisLikeService;
+    }
+
+
+//    private String getRedisKey(String placeName) {
+//        return "place:likes:" + placeName;
+//    }
 
     //전체 조회
     public Page<MapsDTO> getAllMaps(int page, int size) {
@@ -89,14 +105,84 @@ public class MapService {
         }
     }
 
-    // placeName으로 likeMarkCount 조회
+//    // placeName으로 likeMarkCount 조회
+//    public Integer getLikesByPlaceName(String placeName) {
+//        Map map = mapRepository.findMapByPlaceName(placeName)
+//                .orElseThrow(() -> new IllegalArgumentException("찜한 장소가 없습니다."));
+//
+//        return map.getLikemarkCount();
+//    }
+
+    // 찜 카운트 조회 (Redis → DB 순서로 조회)
+    @Transactional(readOnly = true)
     public Integer getLikesByPlaceName(String placeName) {
+        // 1. Redis에서 조회
+        Integer cachedLikeCount = redisLikeService.getLikeCount(placeName);
+        if (cachedLikeCount != null) {
+            return cachedLikeCount;
+        }
+
+        // 2. Redis에 없으면 DB에서 조회 후 캐싱
         Map map = mapRepository.findMapByPlaceName(placeName)
                 .orElseThrow(() -> new IllegalArgumentException("찜한 장소가 없습니다."));
 
-        return map.getLikemarkCount();
+        Integer likeCount = map.getLikemarkCount();
+        redisLikeService.saveLikeCount(placeName, likeCount); // Redis에 캐싱
+        return likeCount;
     }
 
+    // 찜 카운트 증가
+    @Transactional
+    public Integer incrementLikes(String placeName) {
+        Integer updatedLikeCount = redisLikeService.incrementLikeCount(placeName);
+
+        // Redis에 값이 없을 수도 있으므로, MySQL에서 최신 값을 가져와서 업데이트
+        if (updatedLikeCount == 1) {
+            Map map = mapRepository.findMapByPlaceName(placeName)
+                    .orElseThrow(() -> new IllegalArgumentException("찜한 장소가 없습니다."));
+            updatedLikeCount = map.getLikemarkCount() + 1;
+            redisLikeService.saveLikeCount(placeName, updatedLikeCount);
+        }
+
+        return updatedLikeCount;
+    }
+
+    //  찜 카운트 감소
+    @Transactional
+    public Integer decrementLikes(String placeName) {
+        Integer updatedLikeCount = redisLikeService.decrementLikeCount(placeName);
+
+        if (updatedLikeCount == -1) { // Redis에 데이터가 없던 경우
+            Map map = mapRepository.findMapByPlaceName(placeName)
+                    .orElseThrow(() -> new IllegalArgumentException("찜한 장소가 없습니다."));
+            updatedLikeCount = Math.max(map.getLikemarkCount() - 1, 0);
+            redisLikeService.saveLikeCount(placeName, updatedLikeCount);
+        }
+
+        return updatedLikeCount;
+    }
+
+
+//    // 특정 장소의 찜 개수 조회 (Redis 적용)
+//    @Transactional(readOnly = true)
+//    public int getLikesByPlaceName(String placeName) {
+//        String key = getRedisKey(placeName);
+//
+//        // 1 Redis에서 조회
+//        String cachedLikes = redisTemplate.opsForValue().get(key);
+//        if (cachedLikes != null) {
+//            return Integer.parseInt(cachedLikes);
+//        }
+//
+//        // 2 Redis에 없으면 DB 조회
+//        int likes = mapRepository.findLikesByPlaceName(placeName)
+//                .orElse(0); // 데이터가 없으면 기본값 0
+//
+//        //  3 Redis에 저장 (TTL 30초 설정 가능)
+//        redisTemplate.opsForValue().set(key, String.valueOf(likes), Duration.ofSeconds(30));
+//
+//        return likes;
+//    }
 
 
 }

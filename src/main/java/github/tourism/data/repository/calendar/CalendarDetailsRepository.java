@@ -1,5 +1,6 @@
 package github.tourism.data.repository.calendar;
 
+import github.tourism.data.entity.calendar.Calendar;
 import github.tourism.data.entity.calendar.CalendarDetails;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -35,15 +36,28 @@ public interface CalendarDetailsRepository extends JpaRepository<CalendarDetails
             "WHERE fp.user.userId = :userId ")
     List<CalendarDetails> findCalendarDetailsWithFavPlace(@Param("userId") Integer userId);
 
+//    @Modifying
+//    @Transactional
+//    @Query("DELETE " +
+//            "FROM CalendarDetails cd " +
+//            "WHERE cd.calendar.favPlace.user.userId = :userId " +
+//            "AND cd.calendar.calendarId = :calendarId")
+//    int deleteCalendarDetailsByUserIdAndCalendarId(
+//            @Param("userId") Integer userId,
+//            @Param("calendarId") Integer calendarId
+//    );
+
+
+
+
     @Modifying
     @Transactional
-    @Query("DELETE " +
-            "FROM CalendarDetails cd " +
-            "WHERE cd.calendar.favPlace.user.userId = :userId " +
-            "AND cd.calendar.calendarId = :calendarId")
-    int deleteCalendarDetailsByUserIdAndCalendarId(
+    @Query("DELETE FROM CalendarDetails cd " +
+            "WHERE cd.calendarDetailsId = :calendarDetailsId " +
+            "AND cd.calendar.favPlace.user.userId = :userId ")
+    int deleteCalendarDetailsByUserIdAndCalendarDetailsId(
             @Param("userId") Integer userId,
-            @Param("calendarId") Integer calendarId
+            @Param("calendarDetailsId") Integer calendarDetailsId
     );
 
     // CalendarDetails에서 Calendar의 calendarId를 참조
@@ -53,4 +67,7 @@ public interface CalendarDetailsRepository extends JpaRepository<CalendarDetails
 
     // calendarId에 맞는 모든 상세 데이터 조회
     List<CalendarDetails> findAllByCalendar_CalendarId(int calendarId);
+
+    // 특정 Calendar에 속한 CalendarDetails 개수 반환
+    int countByCalendar(Calendar calendar);
 }

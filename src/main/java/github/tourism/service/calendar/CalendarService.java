@@ -52,8 +52,8 @@ public class CalendarService {
         CalendarDetails calendarDetails = new CalendarDetails();
         calendarDetails.setCalendar(savedCalendar);  // 캘린더와 연관 관계 설정
 //        calendarDetails.setPlaceName(dto.getPlaceName()); // 장소 이름
-        calendarDetails.setPlaceImage(dto.getPlaceImage()); // 장소 이미지
-        calendarDetails.setPlaceLocation(dto.getPlaceLocation()); // 장소 위치
+//        calendarDetails.setPlaceImage(dto.getPlaceImage()); // 장소 이미지
+//        calendarDetails.setPlaceLocation(dto.getPlaceLocation()); // 장소 위치
         calendarDetails.setScheduleTime(dto.getScheduleTime()); // 일정 시작 시간
         calendarDetails.setScheduleEndTime(dto.getScheduleEndTime()); // 일정 종료 시간
         calendarDetails.setMemo(dto.getMemo()); // 메모 추가

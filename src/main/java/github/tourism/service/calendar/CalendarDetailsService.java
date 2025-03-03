@@ -1,5 +1,6 @@
 package github.tourism.service.calendar;
 
+import github.tourism.data.entity.calendar.Calendar;
 import github.tourism.data.entity.calendar.CalendarDetails;
 import github.tourism.data.repository.calendar.CalendarDetailsRepository;
 import github.tourism.data.repository.calendar.CalendarRepository;
@@ -7,12 +8,16 @@ import github.tourism.web.advice.ErrorCode;
 import github.tourism.web.dto.calendar.CalendarDetailsDTO;
 import github.tourism.web.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static github.tourism.web.advice.ErrorCode.USER_NOT_FOUNDED;
 
@@ -36,10 +41,33 @@ public class CalendarDetailsService {
     }
 
     // 캘린더 상세내용 지우기 : userId & calendarId 에 기반하여
-    public void deleteCalendarDetailsByUserIdAndCalendarId(int userId, int calendarId) {
-        int affectedRows = calendarDetailsRepository.deleteCalendarDetailsByUserIdAndCalendarId(userId, calendarId);
-        if (affectedRows == 0) {
-            throw new NotFoundException(USER_NOT_FOUNDED);
+//    public void deleteCalendarDetailsByUserIdAndCalendarId(int userId, int calendarId) {
+//        int affectedRows = calendarDetailsRepository.deleteCalendarDetailsByUserIdAndCalendarId(userId, calendarId);
+//        if (affectedRows == 0) {
+//            throw new NotFoundException(USER_NOT_FOUNDED);
+//        }
+//    }
+
+    // 캘린더 상세내용 지우기 : userId & calendarDetailsId 에 기반하여
+    @Transactional
+    public void deleteCalendarDetailsByUserIdAndCalendarDetailsId(int userId, int calendarDetailsId) {
+        // 1.삭제할 CalendarDetails를 먼저 조회
+        Optional<CalendarDetails> optionalDetails = calendarDetailsRepository.findById(calendarDetailsId);
+
+        if (optionalDetails.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 일정이 존재하지 않습니다.");
+        }
+
+        CalendarDetails calendarDetails = optionalDetails.get();
+        Calendar calendar = calendarDetails.getCalendar();
+
+        // 2. CalendarDetails 삭제
+        calendarDetailsRepository.delete(calendarDetails);
+
+        // 3. Calendar에 남아 있는 CalendarDetails가 있는지 확인 후 삭제
+        if (calendar.getCalendarDetailsList().isEmpty()) {
+            System.out.println("Deleting Calendar with ID: " + calendar.getCalendarId());
+            calendarRepository.delete(calendar);
         }
     }
 

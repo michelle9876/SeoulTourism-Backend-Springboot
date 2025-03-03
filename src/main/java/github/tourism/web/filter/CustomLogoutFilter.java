@@ -12,6 +12,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.filter.GenericFilterBean;
 
@@ -69,20 +70,35 @@ public class CustomLogoutFilter extends GenericFilterBean {
 
         refreshRepository.deleteByRefresh(refresh);
 
-        String domain = "https://seoultourismweb.vercel.app"; // 기본 도메인
-        if (request.getServerName().equals("localhost")) {
-            domain = "localhost"; // 로컬 환경에서는 도메인을 localhost로 설정 "http://localhost:3000"
-        }
+//        String domain = "https://seoultourismweb.vercel.app"; // 기본 도메인
+//        if (request.getServerName().equals("localhost")) {
+//            domain = "localhost"; // 로컬 환경에서는 도메인을 localhost로 설정 "http://localhost:3000"
+//        }
+//
+//        Cookie cookie = new Cookie("refresh", null);
+//        cookie.setMaxAge(0);
+//        cookie.setPath("/");
+//        cookie.setHttpOnly(true);
+//        cookie.setDomain(domain); // ✅ 도메인 설정
+//        cookie.setSecure(!"localhost".equals(domain)); // ✅ 로컬 환경에서는 Secure 비활성화
+//        response.addCookie(cookie);
+//        response.setStatus(HttpServletResponse.SC_OK);
 
         Cookie cookie = new Cookie("refresh", null);
         cookie.setMaxAge(0);
         cookie.setPath("/");
-        //cookie.setSecure(true); // HTTPS 환경일 경우
         cookie.setHttpOnly(true);
-        cookie.setDomain(domain); // ✅ 도메인 설정
-        cookie.setSecure(!"localhost".equals(domain)); // ✅ 로컬 환경에서는 Secure 비활성화
+        String origin = request.getHeader("Origin");
+        if (origin != null && origin.contains("localhost")) {
+            cookie.setSecure(false); // 로컬에서는 Secure 속성 제거
+            cookie.setAttribute("SameSite", "Lax");
+        } else {
+            cookie.setSecure(true); // 배포 환경에서는 Secure 적용
+            cookie.setAttribute("SameSite", "None");
+            cookie.setDomain("seoultourismweb.vercel.app");
+        }
         response.addCookie(cookie);
-        response.setStatus(HttpServletResponse.SC_OK);
+        response.setStatus(HttpServletResponse.SC_NO_CONTENT); // 204 No Content
     }
 
     private void createErrorResponse(HttpServletResponse response, ErrorCode errorCode) throws IOException {
@@ -93,6 +109,7 @@ public class CustomLogoutFilter extends GenericFilterBean {
 
     private String getRefreshTokenFromCookies(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
+
         if (cookies != null) {
             for (Cookie cookie : cookies) {
                 if ("refresh".equals(cookie.getName())) {

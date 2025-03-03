@@ -22,6 +22,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RefreshTokenService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshRepository refreshRepository;
@@ -30,6 +31,7 @@ public class RefreshTokenService {
     public Map<String, String> reissueTokens(HttpServletRequest request, HttpServletResponse response) throws Exception {
         String refresh = getRefreshTokenFromCookies(request);
 
+        log.info(refresh);
         if (refresh == null) {
             throw new Exception(ErrorCode.UNAUTHORIZED_REFRESH.getErrorMessage());
         }
@@ -63,7 +65,7 @@ public class RefreshTokenService {
         addRefreshEntity(email, newRefresh, expiredMs);
 
         response.setHeader("Authorization", "Bearer " + newAccess);
-        Cookie refreshCookie = createCookie("refresh", newRefresh);
+        Cookie refreshCookie = createCookie("refresh", newRefresh,request);
         response.addCookie(refreshCookie);
 
         Map<String, String> tokens = new HashMap<>();
@@ -98,13 +100,19 @@ public class RefreshTokenService {
         refreshRepository.save(refreshEntity);
     }
 
-    private Cookie createCookie(String key, String value) {
-
+    private Cookie createCookie(String key, String value, HttpServletRequest request) {
         Cookie cookie = new Cookie(key, value);
-        cookie.setMaxAge(3*60*60); // 쿠키의 유효 기간을 설정
-        cookie.setSecure(true); // 쿠키가 HTTPS 연결을 통해서만 전송되도록 설정
+        cookie.setMaxAge(3 * 60 * 60); // 쿠키의 유효 기간을 설정
         cookie.setPath("/"); // 쿠키가 유효한 경로를 설정
-        cookie.setHttpOnly(true); //쿠키를 HTTP 전용으로 설정 -> JavaScript와 같은 클라이언트 측 스크립트에서 이 쿠키에 접근할 수 없게 됩니다.
+        cookie.setHttpOnly(true); // 쿠키를 HTTP 전용으로 설정
+        cookie.setAttribute("SameSite", "None");
+        String domain = "seoultourism.store"; //"seoultourismweb.vercel.app";
+        if (request.getServerName().equals("localhost")) {
+            domain = "localhost";
+            cookie.setSecure(false);
+            cookie.setAttribute("SameSite", "Lax");
+        }
+        cookie.setSecure(!"localhost".equals(domain));
 
         return cookie;
     }

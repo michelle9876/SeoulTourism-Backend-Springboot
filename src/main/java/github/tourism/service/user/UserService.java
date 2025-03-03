@@ -3,6 +3,7 @@ package github.tourism.service.user;
 import github.tourism.config.security.JwtTokenProvider;
 import github.tourism.data.entity.user.RefreshToken;
 import github.tourism.data.entity.user.User;
+import github.tourism.data.entity.user.factory.MyInfoFactory;
 import github.tourism.data.repository.user.RefreshRepository;
 import github.tourism.data.repository.user.RoleRepository;
 import github.tourism.data.repository.user.UserRepository;
@@ -10,6 +11,7 @@ import github.tourism.service.user.security.CustomUserDetails;
 import github.tourism.web.advice.ErrorCode;
 import github.tourism.web.dto.user.sign.CheckedEmailRequest;
 import github.tourism.web.dto.user.sign.LoginRequest;
+import github.tourism.web.dto.user.sign.MyPageDTO;
 import github.tourism.web.dto.user.sign.SignRequest;
 import github.tourism.web.exception.BadRequestException;
 import github.tourism.web.exception.DeletedUserException;
@@ -46,6 +48,7 @@ public class UserService {
     private final AuthenticationManager authenticationManager;
     private final RoleRepository roleRepository;
     private final RefreshRepository refreshRepository;
+    private final MyInfoFactory myInfoFactory;
 
     private boolean isPasswordStrong(String password) {
         return password.length() >= 8;
@@ -181,5 +184,29 @@ public class UserService {
         userRepository.save(user);
 
         return true;
+    }
+
+    public MyPageDTO approvalToInformation(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow(()-> new NotFoundException(ErrorCode.FAILURE_MYPAGE));
+        return myInfoFactory.createMyPageDTO(user);
+    }
+
+    @Transactional(transactionManager = "tmJpa1")
+    public MyPageDTO modifyUserInformation(String email, MyPageDTO myPageDTO) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException(ErrorCode.FAILURE_MYPAGE));
+        try {
+            user.setEmail(myPageDTO.getEmail());
+            user.setUserName(myPageDTO.getUserName());
+            user.setCountry(myPageDTO.getCountry());
+            user.setGender(myPageDTO.getGender());
+
+            userRepository.save(user);
+
+            return myInfoFactory.createMyPageDTO(user);
+        }catch (BadRequestException e){
+            throw new BadRequestException(ErrorCode.FAILURE_MYPAGE3);
+        }
+
     }
 }

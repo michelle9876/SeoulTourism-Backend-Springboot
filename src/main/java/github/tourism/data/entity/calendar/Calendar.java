@@ -33,7 +33,7 @@ public class Calendar {
     @Column(name = "fav_place_id") // 외래 키를 직접 다룰 수 있도록 추가
     private Integer favPlaceId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY )
     @JoinColumn(name = "fav_place_id", referencedColumnName = "fav_place_id", insertable = false, updatable = false)
     private FavPlace favPlace ;
 

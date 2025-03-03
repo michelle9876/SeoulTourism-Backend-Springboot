@@ -4,8 +4,10 @@ import github.tourism.service.calendar.CalendarDetailsService;
 import github.tourism.web.dto.calendar.CalendarDetailsDTO;
 import github.tourism.web.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -56,21 +58,39 @@ public class CalendarDetailsController {
     }
 
 // calendarId & userId 기반으로 캘린더 삭제
-    @DeleteMapping("/{calendarId}")
+//    @DeleteMapping("/{calendarId}")
+//    public ResponseEntity<String> deleteScheduleByUser(
+//            @PathVariable int calendarId,
+//            @RequestParam int userId) {
+//        try {
+//            // 해당 날짜에 등록된 일정 조회
+//            try {
+//                calendarDetailsService.deleteCalendarDetailsByUserIdAndCalendarId(userId, calendarId);
+//            } catch (NotFoundException e) {
+//                return ResponseEntity.notFound().build();
+//            }
+//            return ResponseEntity.ok("Entry deleted successfully");
+//        } catch (DateTimeParseException e) {
+//            // 잘못된 날짜 형식 예외 처리
+//            return ResponseEntity.badRequest().body(null);
+//        }
+//    }
+
+    // calendarDetailsId & userId 기반으로 캘린더 삭제
+    @DeleteMapping("/{calendarDetailsId}")
     public ResponseEntity<String> deleteScheduleByUser(
-            @PathVariable int calendarId,
+            @PathVariable int calendarDetailsId,
             @RequestParam int userId) {
         try {
-            // 해당 날짜에 등록된 일정 조회
-            try {
-                calendarDetailsService.deleteCalendarDetailsByUserIdAndCalendarId(userId, calendarId);
-            } catch (NotFoundException e) {
-                return ResponseEntity.notFound().build();
-            }
+            calendarDetailsService.deleteCalendarDetailsByUserIdAndCalendarDetailsId(userId, calendarDetailsId);
             return ResponseEntity.ok("Entry deleted successfully");
-        } catch (DateTimeParseException e) {
-            // 잘못된 날짜 형식 예외 처리
-            return ResponseEntity.badRequest().body(null);
+
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("서버 오류로 인해 삭제에 실패했습니다.");
         }
     }
 

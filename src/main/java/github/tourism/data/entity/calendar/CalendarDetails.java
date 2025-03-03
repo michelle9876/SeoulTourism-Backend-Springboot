@@ -22,7 +22,7 @@ public class CalendarDetails {
     private Integer calendarDetailsId ;
 
     // Calendar 엔티티와 연관된 외래 키를 참조
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "calendar_id", referencedColumnName = "calendar_id")
     private Calendar calendar;
 

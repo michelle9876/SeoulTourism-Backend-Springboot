@@ -33,6 +33,19 @@ public class CalendarController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdCalendar);
     }
 
+    @PostMapping("/schedule/{userId}")
+    public ResponseEntity<Calendar> createSingleCalendar(
+            @PathVariable Integer userId,
+            @RequestBody CalendarRequestDTO calendarRequestDTO) {
+        // 요청 객체에 userId 설정
+        calendarRequestDTO.setUserId(userId); // userId 설정
+
+        // 서비스 계층에 요청 처리 위임
+        Calendar createdCalendar = calendarService.createSingleCalendar(calendarRequestDTO);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCalendar);
+    }
+
     // 여러 캘린더 생성
     @PostMapping("/multiple")
     public ResponseEntity<List<Calendar>> createMultipleCalendars(@RequestBody List<CalendarRequestDTO> calendarRequestDTOS) {

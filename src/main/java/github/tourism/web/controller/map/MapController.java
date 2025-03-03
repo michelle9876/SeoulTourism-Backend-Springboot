@@ -24,7 +24,7 @@ public class MapController {
     private final MapService mapService;
 
 
-    //전체 관광지 조회
+    //전체 관광지 조회용
     @GetMapping
     public ResponseEntity<Map<String,Object>> getAllMaps(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "12") int size)

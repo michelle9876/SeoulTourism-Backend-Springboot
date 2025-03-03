@@ -39,7 +39,10 @@ public enum ErrorCode {
     CART_EMPTY(404,"사용자의 장바구니가 비어있습니다.", HttpStatus.NOT_FOUND),
     MAPS_NOT_FOUNDED(404,"해당 맵을 찾을 수 없습니다.",HttpStatus.NOT_FOUND),
 
-
+    FAILURE_MYPAGE(404,"개인 정보를 찾을 수 없습니다.",HttpStatus.BAD_REQUEST),
+    FAILURE_MYPAGE2(400,"개인 정보를 불러올 수 없습니다.",HttpStatus.BAD_REQUEST),
+    FAILURE_MYPAGE3(400,"에러가 발생되어 개인 정보를 수정할 수 없습니다.",HttpStatus.BAD_REQUEST),
+    FAILURE_MYPAGE4(400,"개인 정보 수정 중 문제가 발생했습니다.",HttpStatus.BAD_REQUEST),
     NOT_SAVED_PLACE(400,"존재하지 않는 장소입니다.",HttpStatus.BAD_REQUEST);
 
     private final int statusCode;

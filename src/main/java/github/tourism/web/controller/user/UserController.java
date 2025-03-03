@@ -13,6 +13,7 @@ import github.tourism.web.exception.CustomValidationException;
 import github.tourism.web.exception.NotAcceptException;
 import github.tourism.web.exception.NotFoundException;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -77,15 +78,17 @@ public class UserController {
     }
 
     @PostMapping(value = "/login")
-    public ResponseEntity<ApiResponse<Map<String, String>>> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse httpServletResponse, BindingResult bindingResult) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request,HttpServletResponse httpServletResponse, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             throw new CustomValidationException(ErrorCode.REGISTER_FAILURE);
         }
 
         Map<String, String> tokens = authService.login(loginRequest);
         httpServletResponse.setHeader("Authorization", "Bearer " + tokens.get("access"));
-        Cookie refreshCookie = createCookie("refresh", tokens.get("refresh"));
+
+        Cookie refreshCookie = createCookie("refresh", tokens.get("refresh"),request);
         httpServletResponse.addCookie(refreshCookie);
+
         return ResponseEntity.ok(ApiResponse.onSuccess(tokens));
     }
 
@@ -98,20 +101,60 @@ public class UserController {
             DeletedUserResponse response = new DeletedUserResponse(successSecession, "회원 탈퇴 과정이 완료되었습니다.");
             return ResponseEntity.ok(ApiResponse.onSuccess(response));
         } catch (NotAcceptException e) {
-            log.warn("탈퇴 실패: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(ApiResponse.onFailure(ErrorCode.USER_SECESSION_FAILURE.getStatusCode(), ErrorCode.USER_SECESSION_FAILURE.getErrorMessage(), null));
         } catch (NotFoundException e) {
-            log.warn("사용자 찾기 실패: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.onFailure(ErrorCode.USER_NOT_FOUNDED.getStatusCode(), ErrorCode.USER_NOT_FOUNDED.getErrorMessage(), null));
         }
     }
 
-    private Cookie createCookie(String key, String value) {
+    @GetMapping("/myinfo")
+    public ResponseEntity<ApiResponse<MyPageDTO>> getUserInformation(@JwtAuthorization UserInfoDTO userInfo){
+        try{
+            String email = userInfo.getEmail();
+
+            MyPageDTO approvalSuccessful = authService.approvalToInformation(email);
+            return ResponseEntity.ok(ApiResponse.onSuccess(approvalSuccessful));
+        }catch (BadRequestException e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.onFailure(ErrorCode.FAILURE_MYPAGE2.getStatusCode(),ErrorCode.FAILURE_MYPAGE2.getErrorMessage(),null));
+        }
+    }
+
+    @PutMapping("/modify")
+    public ResponseEntity<ApiResponse<MyPageDTO>> modifyUserInformation(@JwtAuthorization UserInfoDTO userInfo, @RequestBody MyPageDTO myPageDTO){
+        try {
+            String email = userInfo.getEmail();
+
+            MyPageDTO updateInfo = authService.modifyUserInformation(email,myPageDTO);
+            return ResponseEntity.ok(ApiResponse.onSuccess(updateInfo));
+        }catch (BadRequestException e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.onFailure(ErrorCode.FAILURE_MYPAGE4.getStatusCode(),ErrorCode.FAILURE_MYPAGE4.getErrorMessage(),null));
+        }
+    }
+
+    private Cookie createCookie(String key, String value, HttpServletRequest request) {
+
         Cookie cookie = new Cookie(key, value);
         cookie.setMaxAge(3 * 60 * 60); // 쿠키의 유효 기간을 설정
-        cookie.setSecure(true); // 쿠키가 HTTPS 연결을 통해서만 전송되도록 설정
         cookie.setPath("/"); // 쿠키가 유효한 경로를 설정
         cookie.setHttpOnly(true); // 쿠키를 HTTP 전용으로 설정
+//        String origin = request.getHeader("Origin");
+//        if (origin != null && origin.contains("localhost")) {
+//            cookie.setSecure(false); // 로컬에서는 Secure 속성 제거
+//            cookie.setAttribute("SameSite", "Lax");
+//        } else {
+//            cookie.setSecure(true); // 배포 환경에서는 Secure 적용
+//            cookie.setAttribute("SameSite", "None");
+//            cookie.setDomain("seoultourismweb.vercel.app");
+//        }
+        cookie.setAttribute("SameSite", "None");
+        String domain = "seoultourism.store"; //"seoultourismweb.vercel.app";
+        if (request.getServerName().equals("localhost")) {
+            domain = "localhost";
+            cookie.setSecure(false);
+            cookie.setAttribute("SameSite", "Lax");
+        }
+        cookie.setSecure(!"localhost".equals(domain));
+
         return cookie;
     }
 }

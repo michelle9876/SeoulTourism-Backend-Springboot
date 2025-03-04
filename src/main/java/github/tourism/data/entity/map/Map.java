@@ -3,10 +3,7 @@ package github.tourism.data.entity.map;
 
 import github.tourism.data.entity.favPlace.FavPlace;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -14,8 +11,10 @@ import java.util.List;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Table(name = "Map")
 public class Map {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,5 +50,13 @@ public class Map {
             this.likemarkCount--;
         }
     }
+
+    // 정적 팩토리 메서드 추가 (테스트용)
+    public static Map createTestMap(String category) {
+        Map map = new Map();
+        map.category = category;
+        return map;
+    }
+
 
 }
